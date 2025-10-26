@@ -98,6 +98,43 @@ async function handleGetRequest(req, res, httpCode) {
     }
   }
 }
+// Функція для отримання картинки з http.cat
+async function getImageFromHttpCat(req, res, httpCode, imagePath) {
+  try {
+    console.log(`🌐 Fetching image for ${httpCode} from http.cat...`);
+    
+    // Робимо запит до http.cat
+    const response = await superagent
+      .get(`https://http.cat/${httpCode}`)
+      .responseType('blob')
+      .timeout(5000); // 5 секунд таймаут
+    
+    // Перевіряємо, чи це дійсно картинка
+    const contentType = response.headers['content-type'];
+    if (!contentType || !contentType.startsWith('image/')) {
+      throw new Error('Not an image');
+    }
+    
+    // Отримуємо дані картинки
+    const imageData = response.body;
+    
+    // Зберігаємо картинку в кеш для майбутнього використання
+    await fs.writeFile(imagePath, imageData);
+    console.log(`💾 Image for ${httpCode} saved to cache`);
+    
+    // Відправляємо картинку клієнту
+    res.writeHead(200, { 'Content-Type': 'image/jpeg' });
+    res.end(imageData);
+    console.log(`✅ Image for ${httpCode} served from http.cat`);
+    
+  } catch (error) {
+    console.log(`❌ Failed to fetch image for ${httpCode} from http.cat: ${error.message}`);
+    
+    // Повертаємо 404, якщо не вдалося отримати картинку
+    res.writeHead(404, { 'Content-Type': 'text/plain' });
+    res.end('Image not found in cache and could not be fetched from http.cat\n');
+  }
+}
 
 // Функція для обробки PUT запитів
 async function handlePutRequest(req, res, httpCode) {
