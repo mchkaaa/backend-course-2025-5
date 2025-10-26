@@ -2,6 +2,11 @@ const { Command } = require('commander');
 const http = require('http');
 const fs = require('fs').promises;
 const path = require('path');
+const { Command } = require('commander');
+const http = require('http');
+const fs = require('fs').promises;
+const path = require('path');
+const superagent = require('superagent'); 
 
 const program = new Command();
 
@@ -76,23 +81,24 @@ async function handleGetRequest(req, res, httpCode) {
   const imagePath = getImagePath(httpCode);
   
   try {
-    // Спроба прочитати файл
+    // Спершу пробуємо знайти картинку в кеші
     const imageData = await fs.readFile(imagePath);
     
-    // Якщо файл існує - відправляємо його
+    // Якщо файл існує в кеші - відправляємо його
     res.writeHead(200, { 'Content-Type': 'image/jpeg' });
     res.end(imageData);
+    console.log(`✅ Image for ${httpCode} served from cache`);
     
   } catch (error) {
     if (error.code === 'ENOENT') {
-      // Файл не знайдено - 404
-      res.writeHead(404, { 'Content-Type': 'text/plain' });
-      res.end('Image not found in cache\n');
+      // Файл не знайдено в кеші - пробуємо отримати з http.cat
+      await getImageFromHttpCat(req, res, httpCode, imagePath);
     } else {
       throw error;
     }
   }
 }
+
 // Функція для обробки PUT запитів
 async function handlePutRequest(req, res, httpCode) {
   const imagePath = getImagePath(httpCode);
