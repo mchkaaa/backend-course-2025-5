@@ -4,8 +4,9 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js",
-    "dev": "nodemon index.js"
+    "start": "node index.js -h localhost -p 3000 -c ./image-cache",
+    "dev": "nodemon --exec \"node index.js -h localhost -p 3000 -c ./image-cache\"",
+    "test-server": "node index.js -h localhost -p 3000 -c ./test-cache"
   },
   "keywords": [],
   "author": "",
