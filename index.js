@@ -93,7 +93,35 @@ async function handleGetRequest(req, res, httpCode) {
     }
   }
 }
-
+// Функція для обробки PUT запитів
+async function handlePutRequest(req, res, httpCode) {
+  const imagePath = getImagePath(httpCode);
+  
+  try {
+    // Збираємо дані з тіла запиту
+    const chunks = [];
+    for await (const chunk of req) {
+      chunks.push(chunk);
+    }
+    const imageData = Buffer.concat(chunks);
+    
+    // Перевіряємо чи є дані
+    if (imageData.length === 0) {
+      res.writeHead(400, { 'Content-Type': 'text/plain' });
+      return res.end('No image data provided\n');
+    }
+    
+    // Записуємо файл у кеш
+    await fs.writeFile(imagePath, imageData);
+    
+    // 201 Created для успішного створення/заміни
+    res.writeHead(201, { 'Content-Type': 'text/plain' });
+    res.end(`Image for HTTP ${httpCode} saved to cache\n`);
+    
+  } catch (error) {
+    throw error;
+  }
+}
 // Запускаємо сервер
 async function startServer() {
   await ensureCacheDirectory();
