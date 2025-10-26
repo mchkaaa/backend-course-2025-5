@@ -122,6 +122,28 @@ async function handlePutRequest(req, res, httpCode) {
     throw error;
   }
 }
+// Функція для обробки DELETE запитів
+async function handleDeleteRequest(req, res, httpCode) {
+  const imagePath = getImagePath(httpCode);
+  
+  try {
+    // Спроба видалити файл
+    await fs.unlink(imagePath);
+    
+    // 200 OK для успішного видалення
+    res.writeHead(200, { 'Content-Type': 'text/plain' });
+    res.end(`Image for HTTP ${httpCode} deleted from cache\n`);
+    
+  } catch (error) {
+    if (error.code === 'ENOENT') {
+      // Файл не знайдено - 404
+      res.writeHead(404, { 'Content-Type': 'text/plain' });
+      res.end('Image not found in cache\n');
+    } else {
+      throw error;
+    }
+  }
+}
 // Запускаємо сервер
 async function startServer() {
   await ensureCacheDirectory();
