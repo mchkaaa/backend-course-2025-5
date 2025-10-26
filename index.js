@@ -2,11 +2,7 @@ const { Command } = require('commander');
 const http = require('http');
 const fs = require('fs').promises;
 const path = require('path');
-const { Command } = require('commander');
-const http = require('http');
-const fs = require('fs').promises;
-const path = require('path');
-const superagent = require('superagent'); 
+const superagent = require('superagent');
 
 const program = new Command();
 
@@ -34,70 +30,10 @@ async function ensureCacheDirectory() {
   }
 }
 
-// Функція для отримання шляху до файлу зображення
 function getImagePath(httpCode) {
   return path.join(cachePath, `${httpCode}.jpg`);
 }
 
-// Створюємо HTTP сервер
-const server = http.createServer(async (req, res) => {
-  const urlPath = req.url; // Наприклад: /200, /404, тощо
-  const httpCode = urlPath.slice(1); // Видаляємо перший слеш
-  
-  console.log(`${req.method} request for HTTP code: ${httpCode}`);
-
-  // Перевіряємо чи це числовий HTTP код
-  if (!/^\d+$/.test(httpCode)) {
-    res.writeHead(400, { 'Content-Type': 'text/plain' });
-    return res.end('Invalid HTTP code\n');
-  }
-
-  // Обробка різних HTTP методів
-  try {
-    switch (req.method) {
-      case 'GET':
-        await handleGetRequest(req, res, httpCode);
-        break;
-      case 'PUT':
-        await handlePutRequest(req, res, httpCode);
-        break;
-      case 'DELETE':
-        await handleDeleteRequest(req, res, httpCode);
-        break;
-      default:
-        // Method Not Allowed для інших методів
-        res.writeHead(405, { 'Content-Type': 'text/plain' });
-        res.end('Method Not Allowed\n');
-    }
-  } catch (error) {
-    console.error('Server error:', error);
-    res.writeHead(500, { 'Content-Type': 'text/plain' });
-    res.end('Internal Server Error\n');
-  }
-});
-
-// Функція для обробки GET запитів
-async function handleGetRequest(req, res, httpCode) {
-  const imagePath = getImagePath(httpCode);
-  
-  try {
-    // Спершу пробуємо знайти картинку в кеші
-    const imageData = await fs.readFile(imagePath);
-    
-    // Якщо файл існує в кеші - відправляємо його
-    res.writeHead(200, { 'Content-Type': 'image/jpeg' });
-    res.end(imageData);
-    console.log(`✅ Image for ${httpCode} served from cache`);
-    
-  } catch (error) {
-    if (error.code === 'ENOENT') {
-      // Файл не знайдено в кеші - пробуємо отримати з http.cat
-      await getImageFromHttpCat(req, res, httpCode, imagePath);
-    } else {
-      throw error;
-    }
-  }
-}
 // Функція для отримання картинки з http.cat
 async function getImageFromHttpCat(req, res, httpCode, imagePath) {
   try {
@@ -136,6 +72,29 @@ async function getImageFromHttpCat(req, res, httpCode, imagePath) {
   }
 }
 
+// Функція для обробки GET запитів
+async function handleGetRequest(req, res, httpCode) {
+  const imagePath = getImagePath(httpCode);
+  
+  try {
+    // Спершу пробуємо знайти картинку в кеші
+    const imageData = await fs.readFile(imagePath);
+    
+    // Якщо файл існує в кеші - відправляємо його
+    res.writeHead(200, { 'Content-Type': 'image/jpeg' });
+    res.end(imageData);
+    console.log(`✅ Image for ${httpCode} served from cache`);
+    
+  } catch (error) {
+    if (error.code === 'ENOENT') {
+      // Файл не знайдено в кеші - пробуємо отримати з http.cat
+      await getImageFromHttpCat(req, res, httpCode, imagePath);
+    } else {
+      throw error;
+    }
+  }
+}
+
 // Функція для обробки PUT запитів
 async function handlePutRequest(req, res, httpCode) {
   const imagePath = getImagePath(httpCode);
@@ -165,6 +124,7 @@ async function handlePutRequest(req, res, httpCode) {
     throw error;
   }
 }
+
 // Функція для обробки DELETE запитів
 async function handleDeleteRequest(req, res, httpCode) {
   const imagePath = getImagePath(httpCode);
@@ -187,6 +147,44 @@ async function handleDeleteRequest(req, res, httpCode) {
     }
   }
 }
+
+// Створюємо HTTP сервер
+const server = http.createServer(async (req, res) => {
+  const urlPath = req.url;
+  const httpCode = urlPath.slice(1);
+  
+  console.log(`${req.method} request for HTTP code: ${httpCode}`);
+
+  // Перевіряємо чи це числовий HTTP код
+  if (!/^\d+$/.test(httpCode)) {
+    res.writeHead(400, { 'Content-Type': 'text/plain' });
+    return res.end('Invalid HTTP code\n');
+  }
+
+  // Обробка різних HTTP методів
+  try {
+    switch (req.method) {
+      case 'GET':
+        await handleGetRequest(req, res, httpCode);
+        break;
+      case 'PUT':
+        await handlePutRequest(req, res, httpCode);
+        break;
+      case 'DELETE':
+        await handleDeleteRequest(req, res, httpCode);
+        break;
+      default:
+        // Method Not Allowed для інших методів
+        res.writeHead(405, { 'Content-Type': 'text/plain' });
+        res.end('Method Not Allowed\n');
+    }
+  } catch (error) {
+    console.error('Server error:', error);
+    res.writeHead(500, { 'Content-Type': 'text/plain' });
+    res.end('Internal Server Error\n');
+  }
+});
+
 // Запускаємо сервер
 async function startServer() {
   await ensureCacheDirectory();
